@@ -6,14 +6,17 @@ from time import sleep
 
 def main():
     s = functional.irc_login() 
-    # Doing main job in the separate thread
-    threading._start_new_thread(chat_job(s))
-    # what im gonna do here?
+    # Additional thread with remind function
+    reminderThread = threading.Thread(functional.start_reminds(s))
+    # Main chat job
+    mainThread = threading.Thread(chat_job(s))
 
-
+    reminderThread.start()
+    mainThread.start()
+    
 # Listening socket and answering
 def chat_job(s):
-    while True:
+    while(True):
         # Receiving a message from the chat.
         response = s.recv(1024).decode("utf-8")
         if response == "PING :tmi.twitch.tv\r\n":
@@ -35,7 +38,10 @@ def chat_job(s):
             # User get the link to resource that he request  
             if mes in config.LINKS.keys():
                 functional.links(s, message, username)
-            sleep(1)
+            # Reminder that works on seted time. syntax: !remind hh:mm "MESSAGE1", hh:mm hh:mm "MESSAGE2"
+            if u"!remind" in mes:
+                functional.add_remind(mes)
+        sleep(1)
 
 
 if __name__ == "__main__":

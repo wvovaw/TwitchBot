@@ -1,1 +1,3 @@
-# Scalable Twitch irc bot
+# Scalable Twitch irc bot\
+# TODO:
+- fix threading

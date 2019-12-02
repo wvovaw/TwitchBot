@@ -9,13 +9,18 @@ from random import randint
 from time import sleep
 from threading import Lock
 
+s = None
+locker = Lock() # Mutex to block socket
 chat_message = re.compile(r"^:\w+!\w+@\w+\.tmi\.twitch\.tv PRIVMSG #\w+ :")
 # Compile and send a message
-def mess(s, message):
-    s.send("PRIVMSG #{} :{}\r\n".format(config.CHAN, message).encode("utf-8"))
-
+def mess(message):
+    with locker:
+        global s
+        s.send("PRIVMSG #{} :{}\r\n".format(config.CHAN, message).encode("utf-8"))
+    
 # Log in to twitch irc
 def irc_login():
+    global s
     s = socket.socket()
     s.connect((config.HOST, config.PORT))
     s.send("PASS {}\r\n".format(config.PASS).encode("utf-8"))
@@ -24,7 +29,7 @@ def irc_login():
     return s
 
 # Fetching JSON with viewers list and choose a random one
-def winner(s):
+def winner():
     try:
         req = ur.Request(config.URL, headers={"accept": "*/*"})
         res = ur.urlopen(req).read()
@@ -33,10 +38,10 @@ def winner(s):
             config.CHATTERS = data['chatters']['viewers']
     except:
         return "Error 228"
-    mess(s, config.CHATTERS[randint(0, len(config.CHATTERS))])
+    mess(config.CHATTERS[randint(0, len(config.CHATTERS))])
     
 #Role play kill
-def kill(s, message, username):
+def kill(message, username):
     oponent = message[5:]
     if oponent == "\r\n":
          return None
@@ -46,15 +51,15 @@ def kill(s, message, username):
         destiny = randint(0,1)
         danet = ['', ' don\'t']    
         des = ['[Succsess] ', '[Fail] ' ]
-        mess(s, (des[destiny] + username + danet[destiny] + " kill " + oponent))
+        mess((des[destiny] + username + danet[destiny] + " kill " + oponent))
     
 # User roll random number 1 - 100
-def roll(s, username):
-    mess(s, str(username + " rolls " + str(randint(1, 100)) + " points"))
+def roll(username):
+    mess(str(username + " rolls " + str(randint(1, 100)) + " points"))
 
 # Links and contacts
-def links(s, message, username):
-    mess(s, str(username + ", look there " + config.LINKS[message[0:-2]]))
+def links(message, username):
+    mess(str(username + ", look there " + config.LINKS[message[0:-2]]))
 
 # Reminder. write timings and message between " ". It will be sent on the specified times
 # Split reminds with comma
@@ -66,15 +71,12 @@ def links(s, message, username):
 # REMINDS['6:00'] = "Good morning!"
 # ---
 # Parsing an initial string to split it on [(times) "message"]
-def start_reminds(s):
-    a = 0
+def start_reminds():
     while(True):
-        print(a)
-        a += 1
         now = (dt.datetime.strptime(dt.datetime.strftime(dt.datetime.today(), '%H:%M'), '%H:%M')).time()
         for key in config.REMINDS:
             if(now == dt.datetime.strptime(key, '%H:%M').time()):
-                mess(s, str('@' + config.CHAN + ', It\'s ' + str(key) + '. ' + config.REMINDS[key]))
+                mess(str(config.CHAN + ' It\'s ' + str(key) + '. ' + config.REMINDS[key]))
                 del config.REMINDS[key]
                 break
         sleep(1)

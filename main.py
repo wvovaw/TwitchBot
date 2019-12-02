@@ -5,22 +5,23 @@ import re
 from time import sleep
 
 def main():
-    s = functional.irc_login() 
-    # Additional thread with remind function
-    reminderThread = threading.Thread(functional.start_reminds(s))
-    # Main chat job
-    mainThread = threading.Thread(chat_job(s))
-
+    functional.s = functional.irc_login() 
+    reminderThread = threading.Thread(target = functional.start_reminds)
+    mainThread = threading.Thread(target = chat_job)
+    reminderThread.setDaemon(True)
+    mainThread.setDaemon(True)
     reminderThread.start()
     mainThread.start()
-    
+    mainThread.join()
+    reminderThread.join()
+
 # Listening socket and answering
-def chat_job(s):
+def chat_job():
     while(True):
         # Receiving a message from the chat.
-        response = s.recv(1024).decode("utf-8")
+        response = functional.s.recv(1024).decode("utf-8")
         if response == "PING :tmi.twitch.tv\r\n":
-            s.send("PONG :tmi.twitch.tv\r\n".encode("utf-8"))
+            functional.s.send("PONG :tmi.twitch.tv\r\n".encode("utf-8"))
         else:
             username = re.search(r"\w+", response).group(0)
             message = functional.chat_message.sub("", response)
@@ -28,16 +29,16 @@ def chat_job(s):
             mes = message.strip()
             # Role play kill
             if u"!kill" in mes:
-               functional.kill(s, mes, username)
+               functional.kill(message, username)
             # Lottery randomly choosing winner from  viewers
             if u"!winner" in mes:
-                functional.winner(s)
+                functional.winner()
             # User roll random number 1 - 100
             if u"!roll" in mes:
-                functional.roll(s, username)
+                functional.roll(username)
             # User get the link to resource that he request  
             if mes in config.LINKS.keys():
-                functional.links(s, message, username)
+                functional.links(message, username)
             # Reminder that works on seted time. syntax: !remind hh:mm "MESSAGE1", hh:mm hh:mm "MESSAGE2"
             if u"!remind" in mes:
                 functional.add_remind(mes)

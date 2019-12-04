@@ -8,8 +8,9 @@ import datetime as dt
 from random import randint
 from time import sleep
 from threading import Lock
+import YandexTranslateAPI as yt
 
-s = None
+s = None # Global socket
 locker = Lock() # Mutex to block socket
 chat_message = re.compile(r"^:\w+!\w+@\w+\.tmi\.twitch\.tv PRIVMSG #\w+ :")
 # Compile and send a message
@@ -28,6 +29,7 @@ def irc_login():
     s.send("JOIN #{}\r\n".format(config.CHAN).encode("utf-8"))
     return s
 
+###
 # Fetching JSON with viewers list and choose a random one
 def winner():
     try:
@@ -59,7 +61,8 @@ def roll(username):
 
 # Links and contacts
 def links(message, username):
-    mess(str(username + ", look there " + config.LINKS[message[0:-2]]))
+    mess(str(username + " look there " + config.LINKS[message[0:-2]]))
+
 
 # Reminder. write timings and message between " ". It will be sent on the specified times
 # Split reminds with comma
@@ -84,9 +87,7 @@ def start_reminds():
 # Adding new remind
 def add_remind(message):
     message = message[7:]
-    print('Init message: ' + message)
     remindList = message.split(",")
-    print('RemindList')
     for item in remindList:
         print(item)
         set_reminds(item)
@@ -104,3 +105,28 @@ def set_reminds(message):
             return None
         for hm in range(0, len(matchTimes)):
             config.REMINDS[str(matchTimes[hm][0])] = mes
+
+# Translate all messages of the listed users from one language to another choosed
+# Example:
+# !translatehim {USERNAME} to {LANGUAGE}
+# !stoptranslating {USERNAME}
+
+def add_foreign_user(message):
+    message = message.split(' ')
+    try:
+        # Search message[2] in yandex avaliable languages
+        pass
+    except:
+        mess(str(config.CHAN + ' it is impossible to translate on ' + message[2]))
+        return None
+    config.TRANSLATING[message[1]] = message[2]
+    mess(str(config.CHAN + ' user ' + message[1] + ' is now translating to ' + message[2]))
+
+def trans(message, username):
+    translated_message = yt.translate(message, config.TRANSLATING[username])
+    if(translated_message != None):
+        says = yt.translate(u'says', config.TRANSLATING[username])
+        output = username + ' ' + says + ': ' + translated_message 
+        mess(output)
+    else:
+        mess(username + ' says something creepy')

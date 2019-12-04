@@ -3,16 +3,14 @@ import functional, config
 import socket, threading
 import re
 from time import sleep
+import tts
 
 def main():
     functional.s = functional.irc_login() 
     reminderThread = threading.Thread(target = functional.start_reminds)
-    mainThread = threading.Thread(target = chat_job)
     reminderThread.setDaemon(True)
-    mainThread.setDaemon(True)
     reminderThread.start()
-    mainThread.start()
-    mainThread.join()
+    chat_job()
     reminderThread.join()
 
 # Listening socket and answering
@@ -42,6 +40,12 @@ def chat_job():
             # Reminder that works on seted time. syntax: !remind hh:mm "MESSAGE1", hh:mm hh:mm "MESSAGE2"
             if u"!remind" in mes:
                 functional.add_remind(mes)
+            if u"!translatehim" in mes:
+                functional.add_foreign_user(mes)
+            if username in config.TRANSLATING:
+                functional.trans(message, username)
+                                
+
         sleep(1)
 
 
